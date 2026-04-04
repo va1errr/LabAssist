@@ -8,6 +8,8 @@ from typing import Optional, List
 from datetime import datetime
 from uuid import UUID, uuid4
 
+from pgvector.sqlalchemy import Vector
+from sqlalchemy import Column
 from sqlmodel import SQLModel, Field, Relationship
 
 
@@ -99,4 +101,8 @@ class LabDoc(SQLModel, table=True):
     lab_number: int
     title: str
     content: str
+    embedding: Optional[List[float]] = Field(
+        default=None,
+        sa_column=Column(Vector(384)),  # 384-dim from all-MiniLM-L6-v2
+    )
     updated_at: datetime = Field(default_factory=datetime.utcnow)
