@@ -38,7 +38,7 @@ class Question(SQLModel, table=True):
     user_id: UUID = Field(foreign_key="user.id")
     title: str = Field(max_length=200)
     body: str
-    status: str = Field(default="open")  # open / answered / closed
+    status: str = Field(default="analyzing")  # analyzing / open / answered / closed
     ai_answer_id: Optional[UUID] = Field(default=None, foreign_key="answer.id")
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)

@@ -80,6 +80,8 @@ class AnswerResponse(BaseModel):
     source: str
     confidence: Optional[float] = None
     created_at: datetime
+    helpful_count: int = 0
+    not_helpful_count: int = 0
 
     class ConfigDict:  # noqa: N801
         from_attributes = True

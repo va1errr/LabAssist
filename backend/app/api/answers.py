@@ -14,7 +14,7 @@ from app.models.schemas import (
     RatingCreate,
     RatingResponse,
 )
-from app.services.dependencies import get_current_user, require_role
+from app.services.dependencies import get_current_user, get_required_user, require_role
 
 router = APIRouter(tags=["answers", "ratings"])
 
@@ -64,7 +64,7 @@ async def add_answer(
 async def rate_answer(
     answer_id: UUID,
     data: RatingCreate,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_required_user),
     session: AsyncSession = Depends(get_session),
 ):
     """Rate an answer as helpful or not (students only)."""
@@ -83,11 +83,14 @@ async def rate_answer(
             Rating.user_id == current_user.id,
         )
     )
-    if existing.scalar_one_or_none():
-        raise HTTPException(
-            status_code=400,
-            detail="You have already rated this answer",
-        )
+    existing_rating = existing.scalar_one_or_none()
+
+    if existing_rating:
+        # User already rated — update their choice instead of rejecting
+        existing_rating.helpful = data.helpful
+        await session.flush()
+        await session.refresh(existing_rating)
+        return existing_rating
 
     rating = Rating(
         answer_id=answer_id,

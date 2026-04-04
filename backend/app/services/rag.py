@@ -27,7 +27,7 @@ logger = structlog.get_logger()
 
 # Pipeline constants
 TOP_K_DOCS = 3  # Number of lab docs to retrieve
-LLM_TIMEOUT = 30.0  # seconds
+LLM_TIMEOUT = 120.0  # seconds
 
 
 async def retrieve_context(
@@ -81,13 +81,13 @@ def build_prompt(
     Returns a list of messages (system + user) ready to be sent to the API.
     """
     system_prompt = """You are a helpful teaching assistant for a programming lab course.
-Answer student questions based on the provided lab materials. Be specific and reference the lab content.
+Answer student questions based on the provided lab materials when possible.
 
 Rules:
-- If the context contains relevant information, use it to form your answer.
-- If the context is NOT relevant, say "I couldn't find relevant lab materials for this question" and give a general answer.
-- Always end your response with a confidence score.
-- Keep answers concise and practical.
+- If the context contains relevant information, use it to form your answer and cite the lab number.
+- If the context is NOT relevant or doesn't help, answer from your general programming knowledge. Clearly state "This is not covered in the lab materials, but here's what I know:" before your answer.
+- Always end your response with a confidence score between 0.0 and 1.0.
+- Keep answers clear, practical, and example-driven.
 
 Format your response like this:
 ANSWER: <your detailed answer>
@@ -131,7 +131,7 @@ async def call_llm(messages: List[dict]) -> str:
     }
 
     payload = {
-        "model": "qwen-turbo",
+        "model": "coder-model",  # Matches qwen-code-api proxy default
         "messages": messages,
         "temperature": 0.3,
         "max_tokens": 1024,
@@ -211,19 +211,27 @@ async def run_rag_pipeline(
     context_docs = await retrieve_context(question_embedding, session)
 
     if not context_docs:
-        logger.warning("No relevant lab docs found")
-        return "I couldn't find relevant lab materials for this question. Please ask a TA for help.", 0.0, []
+        logger.warning("No relevant lab docs found — answering from general knowledge")
+        context_docs = []  # LLM will answer from general knowledge
 
-    # Step 3: Build prompt and call LLM
+    # Step 3: Build prompt and call LLM (always call it, even with empty context)
     messages = build_prompt(question_title, question_body, context_docs)
     logger.info("Calling LLM API", docs_count=len(context_docs))
 
     try:
         response_text = await call_llm(messages)
-    except Exception:
-        logger.error("LLM call failed, returning fallback answer")
-        lab_numbers = [doc["lab_number"] for doc in context_docs]
-        return "The AI service is temporarily unavailable. A TA will review your question.", 0.0, lab_numbers
+    except httpx.TimeoutException:
+        logger.error("LLM API timed out", timeout=LLM_TIMEOUT)
+        lab_numbers = [doc["lab_number"] for doc in context_docs] if context_docs else []
+        return "⚠️ The AI service timed out. A TA will review your question.", 0.0, lab_numbers
+    except httpx.HTTPStatusError as e:
+        logger.error("LLM API HTTP error", status=e.response.status_code)
+        lab_numbers = [doc["lab_number"] for doc in context_docs] if context_docs else []
+        return f"⚠️ The AI service returned an error ({e.response.status_code}). A TA will review your question.", 0.0, lab_numbers
+    except Exception as e:
+        logger.error("LLM call failed", error=str(e))
+        lab_numbers = [doc["lab_number"] for doc in context_docs] if context_docs else []
+        return f"⚠️ The AI service encountered an unexpected error ({type(e).__name__}). A TA will review your question.", 0.0, lab_numbers
 
     # Step 4: Parse response
     answer_text, confidence = parse_llm_response(response_text)
