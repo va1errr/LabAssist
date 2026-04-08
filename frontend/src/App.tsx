@@ -10,6 +10,7 @@ import QuestionDetailPage from "./pages/QuestionDetail";
 import AskQuestionPage from "./pages/AskQuestion";
 import TAQueuePage from "./pages/TAQueue";
 import StatsPage from "./pages/Stats";
+import "katex/dist/katex.min.css";
 import "./styles/global.css";
 
 /** Protects routes that require authentication. Redirects to /login if not authenticated. */

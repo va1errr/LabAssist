@@ -33,17 +33,42 @@ LabAssist needs an LLM to generate answers. You have two options:
 
 #### Option 1: Use the included qwen-code-api proxy (Qwen Code via OAuth)
 
+> **Important order:** The `docker network connect` command must be run **after** both the LabAssist stack and qwen-code-api are running, because the `labassist_default` network is only created when LabAssist starts.
+
+**Phase 1 — Start qwen-code-api:**
+
 ```bash
-cd /root/LabAssist/qwen-code-api
+cd qwen-code-api
 cp .env.example .env
 # Edit .env — set your Qwen OAuth credentials
 docker compose up -d --build
+```
 
-# Verify it's running
-curl http://localhost:8080/health
+**Phase 2 — Start LabAssist (creates the Docker network):**
 
-# Connect qwen-code-api to LabAssist's Docker network so the backend can reach it
+```bash
+cd /root/se-toolkit-hackathon   # your project root
+cp .env.example .env
+# Edit .env — set LLM_API_BASE, LLM_API_KEY, SECRET_KEY, etc.
+docker compose up -d --build
+```
+
+**Phase 3 — Connect the two networks:**
+
+```bash
+# Now that both projects are running, connect them to the same network
 docker network connect labassist_default qwen-code-api-qwen-code-api-1
+```
+
+**Verify everything works:**
+
+```bash
+# Check qwen-code-api is healthy
+docker exec labassist-backend python -c "
+import urllib.request
+r = urllib.request.urlopen('http://qwen-code-api-qwen-code-api-1:8080/health')
+print('qwen-code-api reachable, status:', r.status)
+"
 ```
 
 The proxy runs on port 8080. Set `LLM_API_BASE=http://qwen-code-api-qwen-code-api-1:8080/v1` in your LabAssist `.env` (using the container name, since `host.docker.internal` does not resolve on Linux).

@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import ReactMarkdown from "react-markdown";
+import remarkMath from "remark-math";
+import rehypeKatex from "rehype-katex";
 import { Answer } from "../types";
 import { answersApi, taApi } from "../api/client";
 import { useAuth } from "../context/AuthContext";
@@ -122,7 +124,9 @@ export default function AnswerCard({ answer, onRate, onEdit, onDelete }: Props) 
         </div>
       ) : (
         <div className="answer-body">
-          <ReactMarkdown>{answer.body}</ReactMarkdown>
+          <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+            {answer.body}
+          </ReactMarkdown>
         </div>
       )}
 

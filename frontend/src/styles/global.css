@@ -298,7 +298,7 @@ button[type="submit"]:disabled {
 
 .question-body {
   margin: 1rem 0;
-  white-space: pre-wrap;
+  line-height: 1.7;
 }
 
 .question-meta {
@@ -1412,3 +1412,34 @@ button[type="submit"]:disabled {
   font-weight: 600;
 }
 .nav-stats:hover { color: var(--primary-dark); }
+
+/* ---- KaTeX (math rendering) ---- */
+.answer-body .katex,
+.question-body .katex,
+.question-text .katex {
+  font-size: 1.05em;
+}
+
+.answer-body .katex-display,
+.question-body .katex-display,
+.question-text .katex-display {
+  margin: 1em 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.answer-body .katex-display > .katex,
+.question-body .katex-display > .katex,
+.question-text .katex-display > .katex {
+  text-align: left;
+  padding-left: 1em;
+}
+
+@media (min-width: 768px) {
+  .answer-body .katex-display > .katex,
+  .question-body .katex-display > .katex,
+  .question-text .katex-display > .katex {
+    text-align: center;
+    padding-left: 0;
+  }
+}

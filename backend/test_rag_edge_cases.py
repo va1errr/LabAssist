@@ -137,6 +137,47 @@ class TestExtractLabNumbers:
         result = extract_lab_numbers("lab 1, Lab #2, LAB 3, lab#4, lab 5")
         assert result == [1, 2, 3, 4, 5]
 
+    # --- Number before lab (reverse order) ---
+    def test_number_before_lab_singular(self):
+        assert extract_lab_numbers("Summarize 8 lab in detail") == [8]
+
+    def test_number_before_lab_plural(self):
+        assert extract_lab_numbers("Compare 3 labs") == [3]
+
+    # --- Range expansion ---
+    def test_range_with_hyphen(self):
+        assert extract_lab_numbers("Summarize labs 1-5") == [1, 2, 3, 4, 5]
+
+    def test_range_with_through(self):
+        assert extract_lab_numbers("labs 1 through 5") == [1, 2, 3, 4, 5]
+
+    def test_range_with_to(self):
+        assert extract_lab_numbers("labs 1 to 10") == [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+
+    # --- Wildcard: all/every/any/each lab → no filter ---
+    def test_all_labs(self):
+        assert extract_lab_numbers("explain all labs") == []
+
+    def test_every_lab(self):
+        assert extract_lab_numbers("Tell me about every lab") == []
+
+    def test_any_lab(self):
+        assert extract_lab_numbers("any lab is fine") == []
+
+    def test_each_lab(self):
+        assert extract_lab_numbers("questions about each lab") == []
+
+    def test_all_of_the_labs(self):
+        assert extract_lab_numbers("compare all of the labs") == []
+
+    # --- Mixed: specific lab + range ---
+    def test_specific_lab_and_range(self):
+        assert extract_lab_numbers("lab 1 and labs 5-7") == [1, 5, 6, 7]
+
+    # --- Comma-separated list in plural ---
+    def test_comma_separated_labs(self):
+        assert extract_lab_numbers("Show me labs 1,2,3") == [1, 2, 3]
+
 
 # =============================================================================
 # UNIT TESTS: build_prompt()

@@ -34,10 +34,46 @@ MAX_CONTEXT_CHARS = 120_000  # Max total context chars (~25K tokens) to avoid up
 
 
 def extract_lab_numbers(question_text: str) -> list[int]:
-    """Extract all explicit lab numbers from question (e.g., 'lab 4 and 5' → [4, 5])."""
-    return sorted(set(
-        int(m) for m in re.findall(r'\blab\s*#?(\d+)\b', question_text, re.IGNORECASE)
-    ))
+    """Extract all explicit lab numbers from question.
+
+    Matches patterns like:
+        'lab 4', 'labs 4', 'lab#4', 'lab  4'
+        '4 lab', '4 labs'
+        'labs 1, 3 and 7'
+        'labs 2 and 9'
+        'labs 1-5', 'labs 1 through 5', 'labs 1 to 10'
+        'all labs', 'every lab', 'any lab', 'each lab' → [] (no filter = search all)
+    """
+    numbers = set()
+
+    # Wildcard: 'all labs', 'every lab', 'any lab', 'each lab' → no filter, search everything
+    if re.search(r'\b(all|any|every|each)\s+(?:of\s+)?(?:the\s+)?labs?\b', question_text, re.IGNORECASE):
+        return []
+
+    # 'lab 4', 'labs 4', 'lab#4', 'lab  4'
+    for m in re.findall(r'\blabs?\s*#?\s*(\d+)', question_text, re.IGNORECASE):
+        numbers.add(int(m))
+
+    # 'N lab(s)' — number before 'lab'/'labs'
+    for m in re.findall(r'\b(\d+)\s+labs?\b', question_text, re.IGNORECASE):
+        numbers.add(int(m))
+
+    # 'labs 1, 3 and 7', 'labs 1-5', 'labs 1 through 5', 'labs 1 to 10'
+    for m in re.findall(r'\blabs\s+([\d][\d\s,\-\w]*(?:through\s+\d+|to\s+\d+)*)', question_text, re.IGNORECASE):
+        nums = [int(n) for n in re.findall(r'\d+', m)]
+        if len(nums) >= 2:
+            first = nums[0]
+            last = nums[-1]
+            # Detect range: contains '-', 'through', or standalone 'to'
+            if '-' in m or 'through' in m.lower() or re.search(r'\bto\b', m, re.IGNORECASE):
+                if first < last:
+                    numbers.update(range(first, last + 1))
+                    continue
+            numbers.update(nums)
+        else:
+            numbers.update(nums)
+
+    return sorted(numbers)
 
 
 async def retrieve_context(

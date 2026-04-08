@@ -5,6 +5,8 @@ import { Link } from "react-router-dom";
 import { taApi } from "../api/client";
 import { useAuth } from "../context/AuthContext";
 import ReactMarkdown from "react-markdown";
+import remarkMath from "remark-math";
+import rehypeKatex from "rehype-katex";
 
 interface FlaggedItem {
   question_id: string;
@@ -133,11 +135,17 @@ export default function TAQueuePage() {
 
               <div className="card-body">
                 <h4>Student's question:</h4>
-                <p className="question-text">{item.body}</p>
+                <div className="question-text">
+                  <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+                    {item.body}
+                  </ReactMarkdown>
+                </div>
 
                 <h4>🤖 AI answer{item.ai_edited ? " (edited)" : ""}:</h4>
                 <div className="ai-answer">
-                  <ReactMarkdown>{item.ai_answer_body}</ReactMarkdown>
+                  <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+                    {item.ai_answer_body}
+                  </ReactMarkdown>
                 </div>
               </div>
 

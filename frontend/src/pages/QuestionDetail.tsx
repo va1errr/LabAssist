@@ -6,6 +6,9 @@ import { Question, Answer } from "../types";
 import AnswerCard from "../components/AnswerCard";
 import { questionsApi, answersApi } from "../api/client";
 import { useAuth } from "../context/AuthContext";
+import ReactMarkdown from "react-markdown";
+import remarkMath from "remark-math";
+import rehypeKatex from "rehype-katex";
 
 export default function QuestionDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -76,7 +79,11 @@ export default function QuestionDetailPage() {
 
       <article className="question-full">
         <h1>{question.title}</h1>
-        <p className="question-body">{question.body}</p>
+        <div className="question-body">
+          <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+            {question.body}
+          </ReactMarkdown>
+        </div>
         <div className="question-meta">
           <span className={`status ${question.status === "analyzing" ? "analyzing" : ""}`}>
             {question.status === "analyzing" && "🤖 AI is analyzing..."}
